@@ -8,6 +8,7 @@
 
 <canvas id="src" width="512" height="512"></canvas>
 <canvas id="dst" width="512" height="512"></canvas>
+<canvas id="yuv" width="512" height="512"></canvas>
 
 <script type="text/javascript">
 	window.onload = function() {
@@ -31,6 +32,11 @@
 			var dstContext = dstCanvas.getContext("2d");
 			var dstImg = dstContext.getImageData(0, 0, imgWidth, imgHeight);
 			var dstData = dstImg.data;
+
+			var yuvCanvas = document.getElementById("yuv");
+			var yuvContext = yuvCanvas.getContext("2d");
+			var yuvImg = yuvContext.getImageData(0, 0, imgWidth, imgHeight);
+			var yuvData = yuvImg.data;
 
 			console.log('experiment');
 
@@ -63,15 +69,24 @@
 					}
 
 					// Do magic at this place :-)
+					const avg = (red + green + blue) / 3;
 
-					dstData[((imgWidth * y) + x) * 4] = 255 - red;
-					dstData[((imgWidth * y) + x) * 4 + 1] = 255 - green;
-					dstData[((imgWidth * y) + x) * 4 + 2] = 255 - blue;
+					dstData[((imgWidth * y) + x) * 4] = avg;
+					dstData[((imgWidth * y) + x) * 4 + 1] = avg;
+					dstData[((imgWidth * y) + x) * 4 + 2] = avg;
 					dstData[((imgWidth * y) + x) * 4 + 3] = alpha;
+
+
+					const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+					yuvData[((imgWidth * y) + x) * 4] = luminance;
+					yuvData[((imgWidth * y) + x) * 4 + 1] = luminance;
+					yuvData[((imgWidth * y) + x) * 4 + 2] = luminance;
+					yuvData[((imgWidth * y) + x) * 4 + 3] = alpha;
 				}
 			}
 
-			dstContext.putImageData(dstImg, 0, 0);
+			dstContext.putImageData(dstImg, 0, 0);		
+			yuvContext.putImageData(yuvImg, 0, 0);
 		}
 	}
 </script>
