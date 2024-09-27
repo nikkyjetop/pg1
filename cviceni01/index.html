@@ -8,7 +8,9 @@
 
 <canvas id="src" width="512" height="512"></canvas>
 <canvas id="dst" width="512" height="512"></canvas>
-<canvas id="yuv" width="512" height="512"></canvas>
+<canvas id="greyscale" width="512" height="512"></canvas>
+<canvas id="rgba" width="512" height="512"></canvas>
+<canvas id="cmyk" width="512" height="512"></canvas>
 
 <script type="text/javascript">
 	window.onload = function() {
@@ -33,60 +35,133 @@
 			var dstImg = dstContext.getImageData(0, 0, imgWidth, imgHeight);
 			var dstData = dstImg.data;
 
-			var yuvCanvas = document.getElementById("yuv");
-			var yuvContext = yuvCanvas.getContext("2d");
-			var yuvImg = yuvContext.getImageData(0, 0, imgWidth, imgHeight);
-			var yuvData = yuvImg.data;
+			var greyscaleCanvas = document.getElementById("greyscale");
+			var greyscaleContext = greyscaleCanvas.getContext("2d");
+			var greyscaleImg = greyscaleContext.getImageData(0, 0, imgWidth, imgHeight);
+			var greyscaleData = greyscaleImg.data;
 
-			console.log('experiment');
+			var rgbaCanvas = document.getElementById("rgba");
+			var rgbaContext = rgbaCanvas.getContext("2d");
+			var rgbaImg = rgbaContext.createImageData(imgWidth, imgHeight);
+			var rgbaData = rgbaImg.data;
 
-			// // Go through image data
-			// for (var i = 0; i < srcData.length; i += 4) {
-			// 	var red = srcData[i];
-			// 	var green = srcData[i + 1];
-			// 	var blue = srcData[i + 2];
-			// 	var alpha = srcData[i + 3];
+			var halfWidth = imgWidth / 2;
+			var halfHeight = imgHeight / 2;
 
-			// 	// Do magic at this place :-)
+			var cmykCanvas = document.getElementById("cmyk");
+			var cmykContext = cmykCanvas.getContext("2d");
+			cmykContext.drawImage(srcImg, 0, 0, imgWidth / 2, imgHeight / 2);
+			cmykContext.drawImage(srcImg, imgWidth / 2, 0, imgWidth / 2, imgHeight / 2);
+			cmykContext.drawImage(srcImg, 0, imgHeight / 2, imgWidth / 2, imgHeight / 2);
+			cmykContext.drawImage(srcImg, imgWidth / 2, imgHeight / 2, imgWidth / 2, imgHeight / 2);
+			var cmykImg = cmykContext.getImageData(0, 0, imgWidth, imgHeight);
+			var cmykData = cmykImg.data;
 
-			// 	dstData[i] = 255 - red;
-			// 	dstData[i + 1] = 255 - green;
-			// 	dstData[i + 2] = 255 - blue;
-			// 	dstData[i + 3] = alpha;
-			// };
 
+			
 			// Go through the image using x,y coordinates
-			for(var y = 0; y < imgHeight; y++) {
-				for(var x = 0; x < imgWidth; x++) {
+			for (var y = 0; y < imgHeight; y++) {
+				for (var x = 0; x < imgWidth; x++) {
 
 					var red = srcData[((imgWidth * y) + x) * 4];
 					var green = srcData[((imgWidth * y) + x) * 4 + 1];
 					var blue = srcData[((imgWidth * y) + x) * 4 + 2];
 					var alpha = srcData[((imgWidth * y) + x) * 4 + 3];
 
-					if (y < 8 && x < 8) {
-						console.log(x, y, red, green, blue);
-					}
-
-					// Do magic at this place :-)
+					// Grayscale and greyscale conversions
 					const avg = (red + green + blue) / 3;
-
 					dstData[((imgWidth * y) + x) * 4] = avg;
 					dstData[((imgWidth * y) + x) * 4 + 1] = avg;
 					dstData[((imgWidth * y) + x) * 4 + 2] = avg;
 					dstData[((imgWidth * y) + x) * 4 + 3] = alpha;
 
-
 					const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-					yuvData[((imgWidth * y) + x) * 4] = luminance;
-					yuvData[((imgWidth * y) + x) * 4 + 1] = luminance;
-					yuvData[((imgWidth * y) + x) * 4 + 2] = luminance;
-					yuvData[((imgWidth * y) + x) * 4 + 3] = alpha;
+					greyscaleData[((imgWidth * y) + x) * 4] = luminance;
+					greyscaleData[((imgWidth * y) + x) * 4 + 1] = luminance;
+					greyscaleData[((imgWidth * y) + x) * 4 + 2] = luminance;
+					greyscaleData[((imgWidth * y) + x) * 4 + 3] = alpha;
+
+					// Red Channel (top-left)
+					if (x < halfWidth && y < halfHeight) {
+						rgbaImg.data[((imgWidth * y) + x) * 4] = red;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 1] = 0;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 2] = 0;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 3] = 255;
+					}
+
+					// Green Channel (top-right)
+					if (x >= halfWidth && y < halfHeight) {
+						rgbaImg.data[((imgWidth * y) + x) * 4] = 0;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 1] = green;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 2] = 0;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 3] = 255;
+					}
+
+					// Blue Channel (bottom-left)
+					if (x < halfWidth && y >= halfHeight) {
+						rgbaImg.data[((imgWidth * y) + x) * 4] = 0;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 1] = 0;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 2] = blue;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 3] = 255;
+					}
+
+					// Alpha Channel (bottom-right)
+					if (x >= halfWidth && y >= halfHeight) {
+						rgbaImg.data[((imgWidth * y) + x) * 4] = avg;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 1] = avg;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 2] = avg;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 3] = alpha;
+					}
+
+					// Convert RGB to CMYK
+					var c = 1 - cmykData[((imgWidth * y) + x) * 4] / 255;
+					var m = 1 - cmykData[((imgWidth * y) + x) * 4 + 1] / 255;
+					var y_ = 1 - cmykData[((imgWidth * y) + x) * 4 + 2] / 255;
+
+					var K = Math.min(c,m,y_);
+					var C = c - K;
+					var M = m - K;
+					var Y = y_ - K;
+					
+
+					if (x < 256 && y < 256) { 
+						M = 0;
+						Y = 0;
+						cmykData[((imgWidth * y) + x) * 4] = 1 - (C + K); 
+						cmykData[((imgWidth * y) + x) * 4 + 1] = 1 - (M + K);
+						cmykData[((imgWidth * y) + x) * 4 + 2] = 1 - (Y + K);
+					}
+					else if (x >= 256 && y < 256) { 
+						C = 0;
+						Y = 0;
+						cmykData[((imgWidth * y) + x) * 4] = 255 * (1-C) * (1-K); 
+						cmykData[((imgWidth * y) + x) * 4 + 1] = 255 * (1-M) * (1-K);
+						cmykData[((imgWidth * y) + x) * 4 + 2] = 255 * (1-Y) * (1-K);
+					}
+					else if (x < 256 && y >= 256) { 
+						C = 0;
+						M = 0;
+						cmykData[((imgWidth * y) + x) * 4] = 255 * (1-C) * (1-K); 
+						cmykData[((imgWidth * y) + x) * 4 + 1] = 255 * (1-M) * (1-K);
+						cmykData[((imgWidth * y) + x) * 4 + 2] = 255 * (1-Y) * (1-K);
+					}
+					else {
+						C = 0;
+						M = 0;
+						Y = 0;
+						cmykData[((imgWidth * y) + x) * 4] = 255 * (1-C) * (1-K); 
+						cmykData[((imgWidth * y) + x) * 4 + 1] = 255 * (1-M) * (1-K);
+						cmykData[((imgWidth * y) + x) * 4 + 2] = 255 * (1-Y) * (1-K);
+					}
+				
 				}
 			}
 
 			dstContext.putImageData(dstImg, 0, 0);		
-			yuvContext.putImageData(yuvImg, 0, 0);
+			greyscaleContext.putImageData(greyscaleImg, 0, 0);
+			rgbaContext.putImageData(rgbaImg, 0, 0);
+			cmykContext.putImageData(cmykImg, 0, 0)
+			
 		}
 	}
 </script>
