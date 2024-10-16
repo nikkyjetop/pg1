@@ -42,6 +42,7 @@
 
 			var rgbaCanvas = document.getElementById("rgba");
 			var rgbaContext = rgbaCanvas.getContext("2d");
+			
 			var rgbaImg = rgbaContext.createImageData(imgWidth, imgHeight);
 			var rgbaData = rgbaImg.data;
 
@@ -107,10 +108,10 @@
 
 					// Alpha Channel (bottom-right)
 					if (x >= halfWidth && y >= halfHeight) {
-						rgbaImg.data[((imgWidth * y) + x) * 4] = avg;
-						rgbaImg.data[((imgWidth * y) + x) * 4 + 1] = avg;
-						rgbaImg.data[((imgWidth * y) + x) * 4 + 2] = avg;
-						rgbaImg.data[((imgWidth * y) + x) * 4 + 3] = alpha;
+						rgbaImg.data[((imgWidth * y) + x) * 4] = 0;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 1] = 0;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 2] = 0;
+						rgbaImg.data[((imgWidth * y) + x) * 4 + 3] = 0;
 					}
 
 					// Convert RGB to CMYK
@@ -125,33 +126,24 @@
 					
 
 					if (x < 256 && y < 256) { 
-						M = 0;
-						Y = 0;
-						cmykData[((imgWidth * y) + x) * 4] = 1 - (C + K); 
-						cmykData[((imgWidth * y) + x) * 4 + 1] = 1 - (M + K);
-						cmykData[((imgWidth * y) + x) * 4 + 2] = 1 - (Y + K);
+						cmykData[((imgWidth * y) + x) * 4] = 255 - C*255; 
+						cmykData[((imgWidth * y) + x) * 4 + 1] = 255;
+						cmykData[((imgWidth * y) + x) * 4 + 2] = 255;
 					}
 					else if (x >= 256 && y < 256) { 
-						C = 0;
-						Y = 0;
-						cmykData[((imgWidth * y) + x) * 4] = 255 * (1-C) * (1-K); 
-						cmykData[((imgWidth * y) + x) * 4 + 1] = 255 * (1-M) * (1-K);
-						cmykData[((imgWidth * y) + x) * 4 + 2] = 255 * (1-Y) * (1-K);
+						cmykData[((imgWidth * y) + x) * 4] = 255; 
+						cmykData[((imgWidth * y) + x) * 4 + 1] = 255 - M*255;
+						cmykData[((imgWidth * y) + x) * 4 + 2] = 255;
 					}
 					else if (x < 256 && y >= 256) { 
-						C = 0;
-						M = 0;
-						cmykData[((imgWidth * y) + x) * 4] = 255 * (1-C) * (1-K); 
-						cmykData[((imgWidth * y) + x) * 4 + 1] = 255 * (1-M) * (1-K);
-						cmykData[((imgWidth * y) + x) * 4 + 2] = 255 * (1-Y) * (1-K);
+						cmykData[((imgWidth * y) + x) * 4] = 255; 
+						cmykData[((imgWidth * y) + x) * 4 + 1] = 255;
+						cmykData[((imgWidth * y) + x) * 4 + 2] = 255 - Y*255;
 					}
 					else {
-						C = 0;
-						M = 0;
-						Y = 0;
-						cmykData[((imgWidth * y) + x) * 4] = 255 * (1-C) * (1-K); 
-						cmykData[((imgWidth * y) + x) * 4 + 1] = 255 * (1-M) * (1-K);
-						cmykData[((imgWidth * y) + x) * 4 + 2] = 255 * (1-Y) * (1-K);
+						cmykData[((imgWidth * y) + x) * 4] = 255 - K*255; 
+						cmykData[((imgWidth * y) + x) * 4 + 1] = 255 - K*255;
+						cmykData[((imgWidth * y) + x) * 4 + 2] = 255 - K*255;
 					}
 				
 				}

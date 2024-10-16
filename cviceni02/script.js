@@ -2,53 +2,50 @@
 function handleFileSelect(item, elementName) {
     var files = item.files;
 
-    console.log(files);
+    if (files.length === 0) return;
 
-    for (var i = 0; i < files.length; i++) {
-        console.log(files[i], files[i].name, files[i].size, files[i].type);
+    var file = files[0]; // Prvý nahraný súbor
 
-        // Only process image files.
-        if (!files[i].type.match('image.*')) {
-            continue;
+    // Skontrolujeme, či je súbor obrázok
+    if (!file.type.match('image.*')) {
+        alert("Prosím nahrajte obrázok.");
+        return;
+    }
+
+    var reader = new FileReader();
+
+    reader.onload = function(evt) {
+        var srcImg = new Image();
+        srcImg.src = evt.target.result;
+
+        srcImg.onload = function() {
+            var srcCanvas = document.getElementById(elementName);
+            var srcContext = srcCanvas.getContext("2d");
+
+            // Nastavenie veľkosti canvasu na veľkosť obrázka
+            srcCanvas.height = srcImg.height;
+            srcCanvas.width = srcImg.width;
+
+            srcContext.drawImage(srcImg, 0, 0);
+
+            // Povolenie tlačidla Convert po načítaní všetkých troch obrázkov
+            checkIfReadyToConvert();
         }
-
-        var reader = new FileReader();
-
-        // Closure for loading image to memory
-        reader.onload = (function(file) {
-            return function(evt) {
-                var srcImg = new Image();
-                srcImg.src = evt.target.result;
-
-                srcImg.onload = function() {
-                    var srcCanvas = document.getElementById(elementName);
-                    var srcContext = srcCanvas.getContext("2d");
-
-                    // Change size of canvas
-                    srcCanvas.height = srcImg.height;
-                    srcCanvas.width = srcImg.width;
-
-                    srcContext.drawImage(srcImg, 0, 0);
-
-                    var dstCanvas = document.getElementById("result");
-                    dstCanvas.height = srcImg.height;
-                    dstCanvas.width = srcImg.width;
-
-                    var convertButton = document.getElementById("convert");
-                    // Enabled button
-                    convertButton.disabled = false;
-                    // Add callback
-                    convertButton.addEventListener('click', convertImage, false);
-                }
-            }
-        })(files[i]);
-
-        reader.readAsDataURL(files[i]);
-
-        break;
     };
-};
 
+    reader.readAsDataURL(file);
+}
+
+function checkIfReadyToConvert() {
+    var personCanvas = document.getElementById("person").getContext("2d").canvas;
+    var backgroundCanvas = document.getElementById("background").getContext("2d").canvas;
+    var logoCanvas = document.getElementById("logo").getContext("2d").canvas;
+
+    // Skontrolujeme, či sú všetky canvasy naplnené obrázkami
+    if (personCanvas.width > 0 && backgroundCanvas.width > 0 && logoCanvas.width > 0) {
+        document.getElementById("convert").disabled = false;
+    }
+}
 
 // Callback function called, when clicked at Convert button
 function convertImage() {
@@ -60,34 +57,54 @@ function convertImage() {
     var personImageData = personContext.getImageData(0, 0, canvasWidth, canvasHeight);
     var backgroundImageData = document.getElementById("background").getContext("2d").getImageData(0, 0, canvasWidth, canvasHeight);
     var logoImageData = document.getElementById("logo").getContext("2d").getImageData(0, 0, canvasWidth, canvasHeight);
-    var resultImageData = document.getElementById("result").getContext("2d").getImageData(0, 0, canvasWidth, canvasHeight);
+    var resultCanvas = document.getElementById("result");
+    var resultContext = resultCanvas.getContext("2d");
 
-    convertImageData(personImageData, backgroundImageData, logoImageData, resultImageData);
+    // Nastavíme veľkosť result canvasu na veľkosť vstupných obrázkov
+    resultCanvas.height = canvasHeight;
+    resultCanvas.width = canvasWidth;
 
-    document.getElementById("result").getContext("2d").putImageData(resultImageData, 0, 0);
-};
-
-// Function for converting raw data of image
-function convertImageData(personImageData, backgroundImageData, logoImageData, resultImageData) {
+    // Klíčovanie: odstránenie zeleného pozadia z postavy
+    var resultImageData = resultContext.createImageData(canvasWidth, canvasHeight);
     var personData = personImageData.data;
     var backgroundData = backgroundImageData.data;
     var logoData = logoImageData.data;
     var resultData = resultImageData.data;
 
-    // Go through the image using x,y coordinates
-    var red, green, blue, alpha;
-    for (var pixelIndex = 0; pixelIndex < personData.length; pixelIndex += 4) {
-        red = (personData[pixelIndex + 0] + backgroundData[pixelIndex + 0] + logoData[pixelIndex + 0]) / 3;
-        green = (personData[pixelIndex + 1] + backgroundData[pixelIndex + 1] + logoData[pixelIndex + 1]) / 3;
-        blue = (personData[pixelIndex + 2] + backgroundData[pixelIndex + 2] + logoData[pixelIndex + 2]) / 3;
-        alpha = (personData[pixelIndex + 3] + backgroundData[pixelIndex + 3] + logoData[pixelIndex + 3]) / 3;
+    for (var i = 0; i < personData.length; i += 4) {
+        var r = personData[i];
+        var g = personData[i + 1];
+        var b = personData[i + 2];
+        var a = personData[i + 3];
 
-        // Do magic at this place
-        //console.log(red, green, blue, alpha);
-
-        resultData[pixelIndex + 0] = red;
-        resultData[pixelIndex + 1] = green;
-        resultData[pixelIndex + 2] = blue;
-        resultData[pixelIndex + 3] = alpha;
+        // Podmienka pre zelené klíčovanie (ak je zelená farba dominantná, odstránime ju)
+        if (g > 100 && g > r && g > b) {
+            // Na miesto zelenej vložíme pozadie
+            resultData[i] = backgroundData[i];
+            resultData[i + 1] = backgroundData[i + 1];
+            resultData[i + 2] = backgroundData[i + 2];
+            resultData[i + 3] = backgroundData[i + 3];
+        } else {
+            // Inak vložíme popredie (postavu)
+            resultData[i] = r;
+            resultData[i + 1] = g;
+            resultData[i + 2] = b;
+            resultData[i + 3] = a;
+        }
     }
+    // Prevedenie loga do odtieňov sivej
+    for (var j = 0; j < logoData.length; j += 4) {
+        if(logoData[j + 3] != 0) {
+            var avg = (logoData[j] + logoData[j + 1] + logoData[j + 2]) / 3;
+            resultData[j] = avg;    // Red
+            resultData[j + 1] = avg; // Green
+            resultData[j + 2] = avg; // Blue
+        }
+    }
+
+    // Vykreslenie finálneho obrázku
+    resultContext.putImageData(resultImageData, 0, 0);
 }
+
+// Pridáme event listener na tlačidlo
+document.getElementById("convert").addEventListener('click', convertImage);
